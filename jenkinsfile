@@ -1,0 +1,47 @@
+pipeline {
+    agent any
+    environment {
+        AWS_ACCESS_KEY_ID="AKIAY3KPFMRCKE7HMFSN"
+        AWS_SECRET_ACCESS_KEY="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"
+        AWS_DEFAULT_REGION="us-east-2" 
+        IMAGE_REPO_NAME="bb-project"
+        IMAGE_TAG="latest"
+        REPOSITORY_URI = "608440771652.dkr.ecr.us-east-2.amazonaws.com/bb-project"
+    }
+   
+    stages {
+        
+         stage('Logging into AWS ECR') {
+            steps {
+                script {
+                sh "aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 608440771652.dkr.ecr.us-east-2.amazonaws.com/bb-project"
+                }
+                 
+            }
+        }
+        
+        stage('Cloning Git') {
+            steps {
+                checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '', url: 'https://github.com/sd031/aws_codebuild_codedeploy_nodeJs_demo.git']]])     
+            }
+        }
+  
+    // Building Docker images
+    stage('Building image') {
+      steps{
+        script {
+          dockerImage = docker.build "bb-project"
+        }
+      }
+    }
+   
+    // Uploading Docker images into AWS ECR
+    stage('Pushing to ECR') {
+     steps{  
+         script {
+                sh "docker push 608440771652.dkr.ecr.us-east-2.amazonaws.com/bb-project"
+         }
+        }
+      }
+    }
+}
